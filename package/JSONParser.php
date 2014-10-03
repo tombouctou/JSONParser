@@ -267,7 +267,7 @@ class JSONParser {
 			throw new JSONParserException('Invalid syntax: expected another token');
 		}
 		
-		$this->processCurrentToken($tokenId, $token);
+		return $this->processCurrentToken($tokenId, $token);
 	}
 	
 	/**
@@ -288,7 +288,11 @@ class JSONParser {
 		
 		// parse the document
 		while ($token = $lexer->nextToken()) {
-			$this->parse($token->type, $token);
+			$ret = $this->parse($token->type, $token);
+			if ($ret === false) {
+				// manually stop parsing
+				return;
+			}
 		}
 	}
 	
@@ -391,11 +395,15 @@ class JSONParser {
 		
 		// fire the handler if set
 		if(!is_null($handler)) {
-			call_user_func_array($handler, array(
+			$ret = call_user_func_array($handler, array(
 				$token->value, // token value
 				is_null($relatedProperty) ? null : $relatedProperty->value // related property value or null if not applicable
 			));
+			if ($ret === false) {
+				return false;
+			}
 		}
+		return true;
 	}
 	
 	/**
